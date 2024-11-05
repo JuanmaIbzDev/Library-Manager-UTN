@@ -3,6 +3,7 @@
 # datos al programa, esta biblioteca se intala con pip install mysql-connector-python desde la terminal.
 import os
 import mysql.connector
+from tabulate import tabulate
 
 
 # Realizamos la conexión a la base de datos.
@@ -157,6 +158,43 @@ def crear_prestamo():
     db.commit()
     print("El prestamo ha sido generado correctamente.")
 
+def tabla_usuarios():
+    os.system("cls")
+    cursor.execute("SELECT * FROM usuarios ORDER BY nombre DESC;")
+    resultado = cursor.fetchall()
+    
+    # Definimos encabezados para la tabla
+    headers = ["ID", "Nombre", "Apellido", "DNI", "Teléfono", "Email", "Creado El", "Actualizado El", "Estado"]
+    
+    # Ahora tenemos que formatear y mostrar los resultados en una tabla
+    print(tabulate(resultado, headers=headers, tablefmt="fancy_grid", stralign="center"))
+    input("\nTabla de usuarios cargada correctamente. Presione Enter para continuar...")
+
+def tabla_libros():
+    cursor.execute("SELECT * FROM libros ORDER BY autor DESC")
+    resultado = cursor.fetchall()
+    # Volvemos a definir el encabezado para la tabla
+    headers = ["ID", "Nombre de Libro", "Autor", "Fecha de Lanzamiento", "ID de Género", "Creado El", "Actualizado El", "Estado"]
+    # Volvemos a formatear y mostrar los resultados en una tabla.
+    print(tabulate(resultado, headers=headers, tablefmt="fancy_grid", stralign="left"))
+    input("\nTabla de libros cargada correctamente. Presione Enter para continuar...")
+
+def tabla_generos():
+    cursor.execute("SELECT * FROM generos ORDER BY genero DESC")
+    resultado = cursor.fetchall()
+    # Definimos el encabezado para la tabla
+    headers = ["ID", "Nombre de Género"]
+    print(tabulate(resultado, headers=headers, tablefmt="fancy_grid", stralign="center"))
+    input("\nTabla de géneros cargada correctamente. Presione Enter para continuar...")
+
+def tabla_prestamos():
+    cursor.execute("SELECT * FROM prestamos ORDER BY fecha_prestamo DESC")
+    resultado = cursor.fetchall()
+    # Definimos el encabezado para la tabla
+    headers = ["ID", "USUARIO ID", "LIBRO ID", "Fecha del Préstamo", "Fecha de Devolución Estimada", "Fecha de Devolución Real"]
+    # Formateamos y mostramos los resultados en una tabla.
+    print(tabulate(resultado, headers=headers, tablefmt="fancy_grid", stralign="center"))
+    input("\nTabla de Préstamos cargada correctamente. Presione Enter para continuar...")
 
 while True:
     #========= MENÚ INTERACTIVO ===========
@@ -177,6 +215,11 @@ while True:
     print("8 - Actualizar género.")
     print("\n  PRESTAMOS:")
     print("9 - Crear prestamo.")
+    print("\nTABLAS:")
+    print("10 - Mostrar tabla de usuarios.")
+    print("11 - Mostrar tabla de libros.")
+    print("12 - Mostrar tabla de géneros de libros.")
+    print("13 - Mostrar tabla de préstamos.")
     
     # Se crea una variable para recibir la respuesta del operador y
     # dependiendo de la opción se realiza un try que comprueba la validez
@@ -247,15 +290,47 @@ while True:
                 continue
             elif valor.lower() == "no":
                 break
+        elif opcion == 10:
+            tabla_usuarios()
+            valor = input("¿Desea realizar otra operación? Responda (Si) o (No): ")
+            if valor.lower() == "si":
+                continue
+            elif valor.lower() == "no":
+                break
+        elif opcion == 11:
+            tabla_libros()
+            valor = input("¿Desea realizar otra operación? Responda (Si) o (No): ")
+            if valor.lower() == "si":
+                continue
+            elif valor.lower() == "no":
+                break
+        elif opcion == 12:
+            tabla_generos()
+            valor = input("¿Desea realizar otra operación? Responda (Si) o (No): ")
+            if valor.lower() == "si":
+                continue
+            elif valor.lower() == "no":
+                break
+        elif opcion == 13:
+            tabla_prestamos()
+            valor = input("¿Desea realizar otra operación? Responda (Si) o (No): ")
+            if valor.lower() == "si":
+                continue
+            elif valor.lower() == "no":
+                break
+        else:
+            print("Opción no válida.")
+            # Preguntar al usuario si desea realizar otra operación
+            valor = input("¿Desea realizar otra operación? Responda (Si) o (No): ")
+            if valor.lower() == "no":
+                break
     
     # Se añade un except que avisa al operador que el dato ingresado no será válido.
     # A su vez ofrece la oportunidad de realizarlo nuevamente.
-    except:
-        print("El dato ingresado no es válido.")
+    except Exception as e:
+        print("Ocurrió un error:", e)
         valor = input("¿Desea intentarlo de nuevo? Responda (Si) o (No): ")
-        if valor.lower() == "si":
-            continue
-        elif valor.lower() == "no":
+        if valor.lower() == "no":
             break
 
 # Si se sale del bucle, se cierra la conexión a la base de datos automáticamente.
