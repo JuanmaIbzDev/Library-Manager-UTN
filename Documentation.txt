@@ -1,0 +1,93 @@
+** Library Manager - UTN ** 
+Documentación
+
+El fin de este documento es presentar el objetivo de la estructura del código.
+
+IMPORTACIONES:
+Estan son todas las importaciones y sus funciones dentro del programa, por favor de revisar el archivo
+#requirements.txt para poder saber las dependencias a instalar para el correcto funcionamiento.
+
+- import os: Nos permitirá limpiar la consola para los usuarios Windows.
+- import platform: Nos permitirá saber la plataforma en la que el usuario ejecutará el programa (Windows, MacOS, Linux).
+- import mysql.connector: Nos permite realizar la conexión a nuestra base de datos, esta dependencia es esencial para el funcionamiento del programa.
+- from tabulate import tabulate: Esta dependencia nos permitirá crear y organizar tablas de forma sencilla y estética.
+- from datetime import datetime: Nos dejará usar nuevos formatos de fechas para el proyecto.
+
+
+FUNCIONES:
+En este apartado se presentará el objetivo que cumplirá cada función en el programa.
+
+- def conectar(): Se define la conexión a nuestra base de datos, se utiliza un try except para maximizar la seguridad ante errores que puedan generarse
+            y así poder tener una conexión limpia. También se define en una función para poder hacer la conexión solo cuando se necesite.
+
+- def ejecutar_consola(): Esta función realizará la consulta necesaria a la base de datos en forma de escritura. Define una variable simple con la conexión
+            a la database e integra una query que permitirá realizar la consulta, finaliza cerrando la conexión para mantener la seguridad y evitar la 
+            filtración de datos.
+
+- def obtener_datos(): Esta función realizará la consulta necesaria a la base de datos pero en forma de lectura (mostrar tablas). Realiza los mismos pasos
+            que la función "ejecutar_consola()".
+
+- def limpiar_consola(): Esta función simplemente cumple con el objetivo de limpiar la pantalla al querer ejecutar alguna función, se realizó en una función
+            a parte para variar si el programa corre en Windows, MacOS o Linux.
+
+- def usuario_activo_check(): Verificará si el usuario ingresado por el operador tiene el "estado" activo(1) o inactivo(0) para luego devolver el dato
+            a la función.
+
+- def libro_activo_check(): El mismo procedimiento que "usuario_activo_check()" solo que esta función está dedicada a la tabla libros.
+
+
+FUNCIONES DEL USUARIO:
+- def crear_usuario(): Al llamar esta función desde el menú interactivo, nos permitirá insertar un nuevo dato en la tabla "usuarios" de la base de datos,
+            requiere ingresar varios datos adicionales para rellenar.
+
+- def actualizar_usuario(): Esta función permite actualizar un dato dentro de la tabla "usuarios" de la database.
+
+- def onoff_usuario(): Esta función cumple la misión de activar o desactivar un usuario de la tabla "usuarios". El usuario con el estado desactivado(0)
+            podrá ser activado nuevamente por el operador al ingresar en esta opción.
+            Causas de inactivación:
+            - Decisión del operador(manual).
+            - Entregar un libro fuera del tiempo estimado(automático).
+
+- def crear_libro(): Esta función permitirá insertar un nuevo libro junto todos sus datos en la tabla "libros" de la base de datos.
+
+- def actualizar_libro(): Permite actualizar los datos de un libro ya existente en la tabla "libros".
+
+- def onoff_libro(): Cumple el objetivo de activar o desactivar un libro de la tabla "libros". El libro con el estado desactivado(0) podrá ser activado
+            nuevamente por el operador al ingresar en esta opción.
+            Causas de inactivación de libro:
+            - Decisión del operador(manual).
+            - Préstamo ya existente del libro(automático).
+
+- def crear_genero(): Permite al operador insertar un nuevo género literario en la tabla "generos" de la base de datos.
+
+- def actualizar_genero(): Realiza la actualización de un género literario ya existente en la tabla "generos".
+
+- def crear_prestamo(): Permite al operador generar un nuevo préstamo, este se insertará en la tabla "prestamos" de la base de datos.
+
+- def actualizar_fecha_devolucion_real(): Permite al operador ingresar la fecha de entrega del libro.
+            Aclaración: Si la fecha real de devolución está fuera del rango de la fecha de devolución estimada, el usuario se desactivará automáticamente.
+
+
+FUNCIONES PARA MOSTRAR TABLAS:
+El objetivo de estas funciones es mostrar al operador las distintas tablas de la base de datos.
+
+tabla_usuarios(): Mostrará la tabla con todos los usuarios ordenando desde el nombre con menos longitud al que mayor longitud tenga.
+
+tabla_libros(): Mostrará la tabla con todos los libros ordenando desde el nombre del libro con menos longitud al que mayor longitud tenga.
+
+tabla_generos(): Mostrará la tabla con todos los géneros literarios ordenándolos con el mismo formato.
+
+tabla_prestamos(): Mostrará la tabla con todos los préstamos realizados y activos, los ordenará por longitud de fecha.
+
+
+MENÚ INTERACTIVO:
+El menú interactivo está realizado por consola, es el encargado de permitir al operador elegir las distintas opciones para ejecutar en el programa, en caso 
+de elegir una opción no válida, el try except puesto se encargará de validar y presentar el error, permitiendo nuevamente al operador ingresar una opción
+correcta. Cada opción llamará a su función predeterminada dónde se validará cada dato que el operador ingrese, esto con el fin de achicar la brecha de
+errores lo máximo posible.
+
+dentro de la función "def menu()" encontraremos el llamado a la función "limpiar_consola()" para luego definir la variable "opciones" que contendrá cada
+opción con el llamado a la función correspondiente.
+
+Se inicia el programa con while True para presentar la estética del menú acompañado de una variable opcion definida con un input que tomará la respuesta del
+operador para luego entrar en la validación del try except, finalmente tomará la opción y si es correcta llevará al operador a la función creada con anterioridad.

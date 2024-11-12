@@ -1,340 +1,369 @@
-# Usamos las bibliotecas "os" que nos permitirá realizar en este caso, la limpieza de la consola para obtener un código
-# mucho más limpio. Y también usamos la biblioteca "mysql.connector" que es fundamental para conectar nuestra base de
-# datos al programa, esta biblioteca se intala con pip install mysql-connector-python desde la terminal.
+# Library Manager UTN
+# Para más información puede leer #Documentation.txt 
+# Autor: Juan Manuel Vargas
+
 import os
+import platform
 import mysql.connector
 from tabulate import tabulate
+from datetime import datetime
 
+def conectar():
+    try:
+        db = mysql.connector.connect(
+            user="root",
+            password="",
+            host="localhost",
+            database="gestor_biblioteca"
+        )
+        return db
+    except mysql.connector.Error as err:
+        print(f"Error: {err}")
+        return None
 
-# Realizamos la conexión a la base de datos.
-db = mysql.connector.connect(
-    user="root",
-    password="",
-    host="localhost",
-    database="gestor_biblioteca"
-    )
-# Procedemos a crear una variable y le designamos el cursor de la db para facilitar su uso en nuestras operaciones.
-cursor = db.cursor()
+def ejecutar_consulta(query, params=()):
+    db = conectar()
+    if db is None:
+        return
+    
+    try:
+        cursor = db.cursor()
+        cursor.execute(query, params)
+        db.commit()
+        return cursor
+    
+    except mysql.connector.Error as err:
+        print(f"Error en la consulta: {err}")
 
-# APARTADO DE FUNCIONES:
-# Designaremos todas las funciones junto a sus parámetros para que el programa las lea primeras y asi luego
-# simplemente realizamos el llamado a la función desde el menú interactivo.
-# Todas las funciones están acompañadas de un print que avisa que la acción se haya realizado correctamente.
+    finally: 
+        db.close()
+
+def obtener_datos(query, params=()):
+    db = conectar()
+    if db is None:
+        return
+    
+    try:
+        cursor = db.cursor()
+        cursor.execute(query, params)
+        return cursor.fetchall()
+    
+    except mysql.connector.Error as err:
+        print(f"Error en la consulta: {err}")
+    
+    finally:
+        db.close()
+
+def limpiar_consola():
+    sistema = platform.system()
+
+    if sistema == "Windows":
+        os.system("cls")
+    else:
+        os.system("clear")
+
+def usuario_activo_check(usuario_id):
+    query = "SELECT estado FROM usuarios WHERE id = %s"
+    resultado_usuario = obtener_datos(query, (usuario_id,))
+    return resultado_usuario and resultado_usuario[0][0] == 1
+
+def libro_activo_check(libro_id):
+    query = "SELECT estado FROM libros WHERE id = %s"
+    resultado_libro = obtener_datos(query, (libro_id,))
+    return resultado_libro and resultado_libro[0][0] == 1
 
 def crear_usuario():
-    # =========== FUNCIÓN PARA CREAR UN USUARIO ===========
-    # Se crea un usuario nuevo en la base de datos.
-    #
-    # Solicita al operador que ingrese el nombre, apellido, DNI, teléfono y email.
-    # Luego, inserta estos datos en la tabla 'usuarios' añadiendo automáticamente el log "creado_el" y "actualizado_el" con el
-    # timestamp actual, además de que se setea automáticamente el valor de "estado" a 1, que significa activo.
-    # No se aplican parámetros especiales ni tampoco retorna ningún dato.
+    limpiar_consola()
     nombre = input("Ingrese el Nombre: ")
     apellido = input("Ingrese el Apellido: ")
     dni = input("Ingrese el DNI: ")
     telefono = input("Ingrese el número de Teléfono: ")
     email = input("Ingrese el Email: ")
-    cursor.execute("INSERT INTO usuarios (nombre, apellido, dni, telefono, email, creado_el, actualizado_el, estado) VALUES (%s, %s, %s, %s, %s, NOW(), NOW(), 1)", (nombre, apellido, dni, telefono, email))
-    db.commit()
+    query = """
+        INSERT INTO usuarios (nombre, apellido, dni, telefono, email, creado_el, actualizado_el, estado)
+        VALUES (%s, %s, %s, %s, %s, NOW(), NOW(), 1)
+    """
+    ejecutar_consulta(query,(nombre, apellido, dni, telefono, email))
     print("El usuario ha sido creado correctamente.")
 
 def actualizar_usuario():
-    # =========== FUNCIÓN PARA ACTUALIZAR UN USUARIO ===========
-    # Se modifican los valores de un usuario ya creado en la base de datos.
-    #
-    # Solicita al operador que ingrese el ID del usuario a modificar, luego los nuevos valores: nombre, apellido, DNI, teléfono y email.
-    # Luego, inserta estos datos en la tabla 'usuarios' y se añade automáticamente el log de "actualizado_el" con el timestamp actual.
-    # No se aplican parámetros especiales ni tampoco retorna ningún dato.
+    limpiar_consola()
     usuario_id = input("Ingrese el ID del usuario a actualizar: ")
     nuevo_nombre = input("Ingrese el nuevo nombre: ")
     nuevo_apellido = input("Ingrese el nuevo apellido: ")
     nuevo_dni = input("Ingrese el nuevo DNI: ")
     nuevo_telefono = input("Ingrese el nuevo teléfono: ")
     nuevo_email = input("Ingrese el nuevo email: ")
+    query = """
+        UPDATE usuarios SET nombre = %s, apellido = %s, dni = %s, telefono = %s, email = %s, actualizado_el = NOW()
+        WHERE id = %s
+    """
+    ejecutar_consulta(query, (nuevo_nombre, nuevo_apellido, nuevo_dni, nuevo_telefono, nuevo_email, usuario_id))
+    print(f"El usuario con el ID {usuario_id} ha sido actualizado correctamente.")
 
-    # Ejecuta la actualización con todos los datos
-    cursor.execute("UPDATE usuarios SET nombre = %s, apellido = %s, dni = %s, telefono = %s, email = %s, actualizado_el = NOW() WHERE id = %s", (nuevo_nombre, nuevo_apellido, nuevo_dni, nuevo_telefono, nuevo_email, usuario_id))
-    db.commit()
-    print(f"El usuario con el id {usuario_id} ha sido correctamente actualizado.")
+def onoff_usuario():
+    limpiar_consola()
+    usuario_id = input("Ingrese el id del usuario: ")
+    onoff = int(input("¿Desea desactivar o activar el usuario? 1(Activar) 2(Desactivar)"))
+    try:
+        if onoff == 0:
+            query = """UPDATE usuarios SET estado = 0, actualizado_el = NOW() 
+            WHERE id = %s
+            """
+            ejecutar_consulta(query, (usuario_id,))
+            print(f"El usuario con el id {usuario_id} ha sido desactivado.")
+        
+        elif onoff == 1:
+            query = """UPDATE usuarios SET estado = 1, actualizado_el = NOW() 
+            WHERE id = %s
+            """
+            ejecutar_consulta(query, (usuario_id,))
+            print(f"El usuario con el id {usuario_id} ha sido activado.")
+    except:
+        print("Ingrese una opción válida.")
 
-def desactivar_usuario():
-    # =========== FUNCIÓN PARA DESACTIVAR UN USUARIO ===========
-    # Se modifican el estado a 0 (inactivo) de un usuario ya creado en la base de datos.
-    #
-    # Solicita al operador que ingrese el ID del usuario a modificar, una vez colocado la función 
-    # coloca el estado (1) activo del usuario a inactivo (0).
-    # No se aplican parámetros especiales ni tampoco retorna ningún dato.
-    usuario_id = input("Ingrese el id del usuario que desea desactivar: ")
-    cursor.execute("UPDATE usuarios SET estado = 0, actualizado_el = NOW() WHERE id = %s", (usuario_id,))
-    db.commit()
-    print(f"El usuario con el id {usuario_id} ha sido correctamente desactivado.")
-
-def agregar_libro():
-    # =========== FUNCIÓN PARA AGREGAR UN LIBRO ===========
-    # Se añade un nuevo libro a la base de datos.
-    #
-    # Solicita al operador que ingrese el nombre, autor y fecha de lanzamiento del libro, además también se le solicita el id del género
-    # al que el libro pertenece.
-    # Luego, inserta estos datos en la tabla 'libros' y se añade automáticamente el log de "creado_el" y "actualizado_el" con el timestamp actual.
-    # y se añade el estado a 1 (activo).
-    # No se aplican parámetros especiales ni tampoco retorna ningún dato.
+def crear_libro():
+    limpiar_consola()
     nombre_libro = input("Ingrese el nombre del libro: ")
     autor = input("Ingrese el nombre del Autor del libro: ")
     fecha_lanzamiento = input("Ingrese la fecha de lanzamiento (AAAA-MM-DD): ")
     id_genero = input("Ingrese el ID del género: ")
-    cursor.execute("INSERT INTO libros (nombre_libro, autor, fecha_lanzamiento, id_genero, creado_el, actualizado_el, estado) VALUES (%s, %s, %s, %s, NOW(), NOW(), 1)", (nombre_libro, autor, fecha_lanzamiento, id_genero))
-    db.commit()
+    query = """INSERT INTO libros (nombre_libro, autor, fecha_lanzamiento, id_genero, creado_el, actualizado_el, estado) 
+    VALUES (%s, %s, %s, %s, NOW(), NOW(), 1)
+    """
+    ejecutar_consulta(query, (nombre_libro, autor, fecha_lanzamiento, id_genero))
     print("El libro ha sido agregado correctamente.")
 
 def actualizar_libro():
-    # =========== FUNCIÓN PARA ACTUALIZAR UN LIBRO ===========
-    # Se modifican los valores de un libro ya creado en la base de datos.
-    #
-    # Solicita al operador que ingrese el ID del libro a modificar, luego los nuevos valores: nombre, autor y fecha de lanzamiento.
-    # Luego, inserta estos datos en la tabla 'libros' y se añade automáticamente el log de "actualizado_el" con el timestamp actual.
-    # No se aplican parámetros especiales ni tampoco retorna ningún dato.
+    limpiar_consola()
     libro_id = input("Ingrese el id del libro a modificar: ")
     nuevo_nombre_libro = input("Ingrese el nuevo nombre del libro: ")
     nuevo_autor = input("Ingrese el nombre del autor: ")
     nueva_fecha_lanzamiento = input("Ingrese la fecha de lanzamiento (AAAA-MM-DD): ")
-    cursor.execute("UPDATE libros SET nombre_libro = %s, autor = %s, fecha_lanzamiento = %s, actualizado_el = NOW() WHERE id = %s",(nuevo_nombre_libro, nuevo_autor, nueva_fecha_lanzamiento, libro_id))
-    db.commit()
+    query = """UPDATE libros SET nombre_libro = %s, autor = %s, fecha_lanzamiento = %s, actualizado_el = NOW() 
+    WHERE id = %s
+    """
+    ejecutar_consulta(query, (nuevo_nombre_libro, nuevo_autor, nueva_fecha_lanzamiento, libro_id))
     print(f"El libro con el id {libro_id} ha sido actualizado correctamente.")
 
-def desactivar_libro():
-    # =========== FUNCIÓN PARA DESACTIVAR UN LIBRO ===========
-    # Se modifican el estado a 0 (inactivo) de un libro ya creado en la base de datos.
-    #
-    # Solicita al operador que ingrese el ID del libro a modificar.
-    # Luego de esto la función cambia el estado a 0 (inactivo) y crea el log de "actualizado_el" con el
-    # timestamp actual.
-    # No se aplican parámetros especiales ni tampoco retorna ningún dato.
-    libro_id = input("Ingrese el id del libro a desactivar: ")
-    cursor.execute("UPDATE libros SET estado = 0, actualizado_el = NOW() WHERE id = %s", (libro_id,))
-    db.commit()
-    print(f"El libro con el id {libro_id} ha sido desactivado correctamente.")
+def onoff_libro():
+    limpiar_consola()
+    libro_id = input("Ingrese el id del libro: ")
+    onoff = input("¿Desea desactivar o activar el libro? 1(Activar) 2(Desactivar)")
+    try:
+        if onoff == 0:
+            query = """UPDATE libros SET estado = 0, actualizado_el = NOW() 
+            WHERE id = %s
+            """
+            ejecutar_consulta(query, (libro_id,))
+            print(f"El libro con el id {libro_id} ha sido desactivado.")
+        
+        elif onoff == 1:
+            query = """UPDATE libros SET estado = 0, actualizado_el = NOW() 
+            WHERE id = %s
+            """
+            ejecutar_consulta(query, (libro_id,))
+            print(f"El libro con el id {libro_id} ha sido activado.")
+    except:
+        print("Ingrese una opción válida.")
 
-def agregar_genero():
-    # =========== FUNCIÓN PARA AÑADIR UN GÉNERO DE LIBRO ===========
-    # Se añade un nuevo género de libro en la base de datos.
-    #
-    # Solicita al operador que ingrese el nombre del genero a agregar y luego
-    # se inserta el dato en la tabla "generos" de la base de datos.
-    # No se aplican parámetros especiales ni tampoco retorna ningún dato.
+def crear_genero():
+    limpiar_consola()
     genero = input("Ingrese el nombre del género a agregar: ")
-    cursor.execute("INSERT INTO generos (genero) VALUES (%s)", (genero,))
-    db.commit()
+    query = """INSERT INTO generos (genero) 
+    VALUES (%s)
+    """ 
+    ejecutar_consulta(query, (genero,))
     print("El género ha sido agregado correctamente.")
 
 def actualizar_genero():
-    # =========== FUNCIÓN PARA ACTUALIZAR UN GÉNERO DE LIBRO ===========
-    # Se actualiza el nombre de un género de libro en la base de datos.
-    #
-    # Solicita al operador que ingrese el ID del género a modificar, luego se pide el nuevo nombre del genero
-    # y se inserta el dato en la tabla "generos" de la base de datos.
-    # No se aplican parámetros especiales ni tampoco retorna ningún dato.
+    limpiar_consola()
     genero_id = input("Ingrese el id del género a modificar: ")
     nuevo_nombre_genero = input("Ingrese el nombre del género: ")
-    cursor.execute("UPDATE generos SET genero = %s WHERE id = %s", (nuevo_nombre_genero, genero_id))
-    db.commit()
+    query = """UPDATE generos SET genero = %s 
+    WHERE id = %s
+    """
+    ejecutar_consulta(query, (nuevo_nombre_genero, genero_id))
     print("El genero ha sido actualizado correctamente.")
 
 def crear_prestamo():
-    # =========== FUNCIÓN PARA CREAR UN PRÉSTAMO DE LIBRO ===========
-    # Se agrega un nuevo préstamo de libro en la base de datos.
-    #
-    # Solicita al operador que ingrese el id del usuario al que se realizará el prestamo, luego
-    # se solicita el ID del libro que se prestará y por último se solicitan las fechas de:
-    # - Prestamo(fecha de cuando se realizó el prestamo). 
-    # - Devolución estimada(fecha de finalización del préstamo)
-    # - Devolución real(fecha en la cual el usuario devuelve el libro).
-    # No se aplican parámetros especiales ni tampoco retorna ningún dato.
-    usuario_id = input("Inserte el ID del usuario: ")
-    libro_id = input("Ingrese el ID del libro: ")
-    fecha_prestamo = input("Ingrese la fecha del prestamo (AAAA-MM-DD): ")
-    fecha_devolucion_estimada = input("Ingrese la fecha de devolución estimada(AAAA-MM-DD): ")
-    fecha_devolucion_real = input("Ingrese la fecha de devolución real (AAAA-MM-DD): ")
-    cursor.execute("INSERT INTO prestamos (usuario_id, libro_id, fecha_prestamo, fecha_devolucion_estimada, fecha_devolucion_real) VALUES (%s, %s, %s, %s, %s)", (usuario_id, libro_id, fecha_prestamo, fecha_devolucion_estimada, fecha_devolucion_real))
-    db.commit()
-    print("El prestamo ha sido generado correctamente.")
+    limpiar_consola()
+    try:
+        usuario_id = input("Inserte el ID del usuario: ")
+        if not usuario_activo_check(usuario_id):
+            input("El usuario está inactivo o no existe. No se puede crear el préstamo.")
+            return
+
+        print("Usuario activo.")
+        
+        libro_id = input("Ingrese el ID del libro: ")
+        if not libro_activo_check(libro_id):
+            input("El libro está inactivo o no disponible para préstamo.")
+            return
+
+        print("Libro disponible para préstamo.")
+
+        fecha_prestamo = input("Ingrese la fecha del préstamo (AAAA-MM-DD): ")
+        fecha_devolucion_estimada = input("Ingrese la fecha de devolución estimada (AAAA-MM-DD): ")
+
+        query = """INSERT INTO prestamos (usuario_id, libro_id, fecha_prestamo, fecha_devolucion_estimada, fecha_devolucion_real)
+                VALUES (%s, %s, %s, %s, NOW())"""
+        ejecutar_consulta(query, (usuario_id, libro_id, fecha_prestamo, fecha_devolucion_estimada))
+
+        input("El préstamo ha sido creado correctamente.")
+
+    except ValueError:
+        input("Error: Formato de fecha inválido. Utilice el formato (AAAA-MM-DD).")
+    except Exception as e:
+        input(f"Ocurrió un error al crear el préstamo: {e}")
+
+def actualizar_fecha_devolucion_real():
+    limpiar_consola()
+    prestamo_id = input("Ingrese el ID del préstamo: ")
+    try:
+        fecha_devolucion_real = input("Ingrese la fecha de devolución real (AAAA-MM-DD): ")
+        fecha_devolucion_real = datetime.strptime(fecha_devolucion_real, '%Y-%m-%d')
+        
+        query = """SELECT fecha_devolucion_estimada, usuario_id FROM prestamos WHERE id = %s"""
+        prestamo_info = obtener_datos(query, (prestamo_id,))
+        
+        if prestamo_info:
+            fecha_devolucion_estimada, usuario_id = prestamo_info[0]
+            fecha_devolucion_estimada = datetime.strptime(fecha_devolucion_estimada, '%Y-%m-%d')
+            
+            query = """UPDATE prestamos SET fecha_devolucion_real = %s WHERE id = %s"""
+            ejecutar_consulta(query, (fecha_devolucion_real, prestamo_id))
+            input("Fecha de devolución real actualizada.")
+            
+            if fecha_devolucion_real > fecha_devolucion_estimada:
+                query = """UPDATE usuarios SET estado = 0 WHERE id = %s"""
+                ejecutar_consulta(query, (usuario_id,))
+                input("Usuario desactivado por devolución fuera del tiempo estimado.")
+        else:
+            input("No se encontró el préstamo con el ID proporcionado.")
+    
+    except ValueError:
+        input("Error: Formato de fecha inválido. Utilice el formato (AAAA-MM-DD).")
+    except Exception as e:
+        input(f"Ocurrió un error al actualizar la fecha de devolución real: {e}")
+
+# Tablas
+
+def mostrar_tabla(tabla, columna_orden):
+    limpiar_consola()
+    db = conectar()
+    if db is None:
+        input("No se pudo conectar a la base de datos.")
+        return
+
+    try:
+        cursor = db.cursor()
+        query = f"SELECT * FROM {tabla} ORDER BY LENGTH({columna_orden}) ASC"
+        cursor.execute(query)
+        resultados = cursor.fetchall()
+        columnas = [descripcion[0] for descripcion in cursor.description]
+
+        print(tabulate(resultados, headers=columnas, tablefmt="fancy_grid"))
+        input("Presione ENTER para continuar...")
+
+    except Exception as e:
+        input(f"Ocurrió un problema al mostrar la tabla: {e}")
+    
+    finally:
+        db.close()
 
 def tabla_usuarios():
-    os.system("cls")
-    cursor.execute("SELECT * FROM usuarios ORDER BY nombre DESC;")
-    resultado = cursor.fetchall()
-    
-    # Definimos encabezados para la tabla
-    headers = ["ID", "Nombre", "Apellido", "DNI", "Teléfono", "Email", "Creado El", "Actualizado El", "Estado"]
-    
-    # Ahora tenemos que formatear y mostrar los resultados en una tabla
-    print(tabulate(resultado, headers=headers, tablefmt="fancy_grid", stralign="center"))
-    input("\nTabla de usuarios cargada correctamente. Presione Enter para continuar...")
+    limpiar_consola()
+    mostrar_tabla("usuarios", "nombre")
 
 def tabla_libros():
-    cursor.execute("SELECT * FROM libros ORDER BY autor DESC")
-    resultado = cursor.fetchall()
-    # Volvemos a definir el encabezado para la tabla
-    headers = ["ID", "Nombre de Libro", "Autor", "Fecha de Lanzamiento", "ID de Género", "Creado El", "Actualizado El", "Estado"]
-    # Volvemos a formatear y mostrar los resultados en una tabla.
-    print(tabulate(resultado, headers=headers, tablefmt="fancy_grid", stralign="left"))
-    input("\nTabla de libros cargada correctamente. Presione Enter para continuar...")
+    limpiar_consola()
+    db = conectar()
+    cursor = db.cursor()
+
+    cursor.execute("SELECT id, nombre_libro, autor, fecha_lanzamiento, id_genero, creado_el, actualizado_el, estado FROM libros ORDER BY LENGTH(nombre_libro)")
+    libros = cursor.fetchall()
+
+    cursor.close()
+    db.close()
+
+    print(f"{'ID':<5} {'Libro':<30} {'Autor':<25} {'Lanzamiento':<15} {'Genero ID':<10} {'Creado':<20} {'Actualizado':<20} {'Estado':<6}")
+    print("=" * 140)
+
+    for libro in libros:
+        id, nombre_libro, autor, fecha_lanzamiento, id_genero, creado_el, actualizado_el, estado = libro
+        print(f"{id:<5} {nombre_libro[:30]:<30} {autor[:25]:<25} {str(fecha_lanzamiento):<15} {id_genero:<10} {str(creado_el):<20} {str(actualizado_el):<20} {estado:<6}")
+    input("Presione ENTER para continuar...")
 
 def tabla_generos():
-    cursor.execute("SELECT * FROM generos ORDER BY genero DESC")
-    resultado = cursor.fetchall()
-    # Definimos el encabezado para la tabla
-    headers = ["ID", "Nombre de Género"]
-    print(tabulate(resultado, headers=headers, tablefmt="fancy_grid", stralign="center"))
-    input("\nTabla de géneros cargada correctamente. Presione Enter para continuar...")
+    limpiar_consola()
+    mostrar_tabla("generos", "genero")
 
 def tabla_prestamos():
-    cursor.execute("SELECT * FROM prestamos ORDER BY fecha_prestamo DESC")
-    resultado = cursor.fetchall()
-    # Definimos el encabezado para la tabla
-    headers = ["ID", "USUARIO ID", "LIBRO ID", "Fecha del Préstamo", "Fecha de Devolución Estimada", "Fecha de Devolución Real"]
-    # Formateamos y mostramos los resultados en una tabla.
-    print(tabulate(resultado, headers=headers, tablefmt="fancy_grid", stralign="center"))
-    input("\nTabla de Préstamos cargada correctamente. Presione Enter para continuar...")
+    limpiar_consola()
+    mostrar_tabla("prestamos", "fecha_prestamo")
 
-while True:
-    #========= MENÚ INTERACTIVO ===========
-    # Se ofrecen bastantes opciones al operador para poder gestionar el
-    # sistema de la biblioteca.
-    os.system("cls")
-    print("====== GESTOR DE BIBLIOTECA ======")
-    print("\nUSUARIOS:")
-    print("1 - Crear usuario.")
-    print("2 - Actualizar usuario.")
-    print("3 - Desactivar usuario.")
-    print("\nLIBROS:")
-    print("4 - Agregar libro.")
-    print("5 - Actualizar libro.")
-    print("6 - Desactivar libro.")
-    print("\nGENEROS:")
-    print("7 - Añadir género.")
-    print("8 - Actualizar género.")
-    print("\n  PRESTAMOS:")
-    print("9 - Crear prestamo.")
-    print("\nTABLAS:")
-    print("10 - Mostrar tabla de usuarios.")
-    print("11 - Mostrar tabla de libros.")
-    print("12 - Mostrar tabla de géneros de libros.")
-    print("13 - Mostrar tabla de préstamos.")
-    
-    # Se crea una variable para recibir la respuesta del operador y
-    # dependiendo de la opción se realiza un try que comprueba la validez
-    # de la respuesta permitiendo así llamar a la función para realizar
-    # la debida operación.
-    opcion = int(input("\nElija una opción: "))
-    try:
-        if opcion == 1:
-            crear_usuario()
-            valor = input("¿Desea realizar otra operación? Responda (Si) o (No): ")
-            if valor.lower() == "si":
-                continue
-            elif valor.lower() == "no":
-                break
-        elif opcion == 2:
-            actualizar_usuario()
-            valor = input("¿Desea realizar otra operación? Responda (Si) o (No): ")
-            if valor.lower() == "si":
-                continue
-            elif valor.lower() == "no":
-                break
-        elif opcion == 3:
-            desactivar_usuario()
-            valor = input("¿Desea realizar otra operación? Responda (Si) o (No): ")
-            if valor.lower() == "si":
-                continue
-            elif valor.lower() == "no":
-                break
-        elif opcion == 4:
-            agregar_libro()
-            valor = input("¿Desea realizar otra operación? Responda (Si) o (No): ")
-            if valor.lower() == "si":
-                continue
-            elif valor.lower() == "no":
-                break
-        elif opcion == 5:
-            actualizar_libro()
-            valor = input("¿Desea realizar otra operación? Responda (Si) o (No): ")
-            if valor.lower() == "si":
-                continue
-            elif valor.lewer() == "no":
-                break
-        elif opcion == 6:
-            desactivar_libro()
-            valor = input("¿Desea realizar otra operación? Responda (Si) o (No): ")
-            if valor.lower() == "si":
-                continue
-            elif valor.lower() == "no":
-                break
-        elif opcion == 7:
-            agregar_genero()
-            valor = input("¿Desea realizar otra operación? Responda (Si) o (No): ")
-            if valor.lower() == "si":
-                continue
-            elif valor.lower() == "no":
-                break
-        elif opcion == 8:
-            actualizar_genero()
-            valor = input("¿Desea realizar otra operación? Responda (Si) o (No): ")
-            if valor.lower() == "si":
-                continue
-            elif valor.lower() == "no":
-                break
-        elif opcion == 9:
-            crear_prestamo()
-            valor = input("¿Desea realizar otra operación? Responda (Si) o (No): ")
-            if valor.lower() == "si":
-                continue
-            elif valor.lower() == "no":
-                break
-        elif opcion == 10:
-            tabla_usuarios()
-            valor = input("¿Desea realizar otra operación? Responda (Si) o (No): ")
-            if valor.lower() == "si":
-                continue
-            elif valor.lower() == "no":
-                break
-        elif opcion == 11:
-            tabla_libros()
-            valor = input("¿Desea realizar otra operación? Responda (Si) o (No): ")
-            if valor.lower() == "si":
-                continue
-            elif valor.lower() == "no":
-                break
-        elif opcion == 12:
-            tabla_generos()
-            valor = input("¿Desea realizar otra operación? Responda (Si) o (No): ")
-            if valor.lower() == "si":
-                continue
-            elif valor.lower() == "no":
-                break
-        elif opcion == 13:
-            tabla_prestamos()
-            valor = input("¿Desea realizar otra operación? Responda (Si) o (No): ")
-            if valor.lower() == "si":
-                continue
-            elif valor.lower() == "no":
-                break
-        else:
-            print("Opción no válida.")
-            # Preguntar al usuario si desea realizar otra operación
-            valor = input("¿Desea realizar otra operación? Responda (Si) o (No): ")
-            if valor.lower() == "no":
-                break
-    
-    # Se añade un except que avisa al operador que el dato ingresado no será válido.
-    # A su vez ofrece la oportunidad de realizarlo nuevamente.
-    except Exception as e:
-        print("Ocurrió un error:", e)
-        valor = input("¿Desea intentarlo de nuevo? Responda (Si) o (No): ")
-        if valor.lower() == "no":
-            break
 
-# Si se sale del bucle, se cierra la conexión a la base de datos automáticamente.
-# NOTA: Vi un video que es lo más recomendable ya que se puede evitar la filtración de
-# datos y demás, no sé si sea lo mejor realizarlo así.
-cursor.close()
-db.close()
+def menu():
+    limpiar_consola()
+    opciones = {
+        1: crear_usuario,
+        2: actualizar_usuario,
+        3: onoff_usuario,
+        4: crear_libro,
+        5: actualizar_libro,
+        6: onoff_libro,
+        7: crear_genero,
+        8: actualizar_genero,
+        9: crear_prestamo,
+        10: actualizar_fecha_devolucion_real,
+        11: tabla_usuarios,
+        12: tabla_libros,
+        13: tabla_generos,
+        14: tabla_prestamos,
+        15: exit,
+    }
+
+    while True:
+        os.system("cls")
+        print("""
+            =========== LIBRARY MANAGER UTN ==========
+            |USUARIOS:                               |
+            |- 1) Crear Usuario.                     |
+            |- 2) Actualizar Usuario.                |
+            |- 3) Activar/Desactivar Usuario.        |
+            |                                        |
+            |LIBROS:                                 |
+            |- 4) Crear Libro.                       |
+            |- 5) Actualizar Libro.                  |
+            |- 6) Activar/Desactivar Libro.          |
+            |                                        |
+            |GÉNEROS:                                |
+            |- 7) Crear Género Literario.            |
+            |- 8) Actualizar Género Literario.       |
+            |                                        |
+            |PRÉSTAMOS:                              |
+            |- 9) Crear Préstamo.                    |
+            |- 10) Actualizar Entrega de Libro.      |
+            |                                        |
+            |TABLAS:                                 |
+            |- 11) Mostrar Tabla de Usuarios.        |
+            |- 12) Mostrar Tabla de Libros.          |
+            |- 13) Mostrar Tabla de Generos.         |
+            |- 14) Mostrar Tabla de Préstamos.       |
+            |                                        |
+            |SALIR:                                  |
+            |- 15) Salir del programa.               |   
+            """)
+        
+        try:
+            opcion = int(input("            |Elija una opción: "))
+            funcion = opciones.get(opcion)
+            if funcion:
+                funcion()
+            else:
+                print("Opción no válida.")
+        except ValueError:
+            print("Por favor, ingrese un número válido.")
+
+menu()

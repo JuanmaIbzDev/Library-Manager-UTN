@@ -2,3 +2,9 @@ __pycache__/
 *.py[cod]
 venv/
 .env
+.vscode/
+.idea/
+thumbs.db
+Desktop.ini
+.DS_Store
+*.log
