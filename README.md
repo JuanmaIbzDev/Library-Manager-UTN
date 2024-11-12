@@ -8,8 +8,6 @@ Este programa permite al usuario poder gestionar algunos parámetros fundamental
 mediante operaciones CRUD (create, read, update y delete). Es totalmente escalable por lo que se puede mejorar en
 un futuro.
 
-NOTA: Agregué varios comentarios con # en el código para ayudar a la lectura y comprensión de la estructura de mi código.
-
 # Dependencias.
 Se pueden ver en el apartado #requirements.txt
 
