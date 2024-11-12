@@ -19,6 +19,7 @@ Esta biblioteca nos permite ordenar nuestras tablas al momento de imprimirlas en
 
 # Uso Básico.
 Operaciones CRUD, además de un excelente menú interactivo fácil de utilizar.
+Se puede extender la explicación de cada rama de la estructura del código en el archivo #Documentation.txt
 
 # Base de Datos.
 Para utilizar este proyecto correctamente, es necesario importar la base de datos que dejé en el apartado "database" en el proyecto. Seguí estos pasos para su instalación:
